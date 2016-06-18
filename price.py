@@ -8,6 +8,7 @@ import re
 from datetime import datetime
 from urllib import quote
 from selenium import webdriver
+from pyquery import PyQuery as pq
 
 
 class IConsole:
@@ -41,7 +42,7 @@ class IBrowser(object):
         self.check_browser()
         try:
             print url
-            #self.browser.implicitly_wait(2)
+            self.browser.implicitly_wait(10)
             self.browser.get(url)
             return self.browser.page_source
         except Exception as e:
@@ -58,10 +59,11 @@ class Pricer(object):
     """
     good_name = None
     base_urls = ['https://list.tmall.com/search_product.htm?&sort=rq&',
-        'http://search.jd.com/Search?&psort=3&',
-        'http://search.suning.com/']
-    encoded_urls = {'tmall':'', 'jd':'','suning':''}
-    price = {'tmall': 0.0, 'jd': 0.0, 'suning': 0.0}
+        'http://search.jd.com/Search?&psort=3&']
+    encoded_urls = {'tmall':'', 'jd':''}
+    price = {'tmall': 0.0, 'jd': 0.0}
+    link = {'tmall':'', 'jd':''}
+    title = {'tmall':'', 'jd':''}
 
     def __init__(self, good_name):
         super(Pricer, self).__init__()
@@ -78,31 +80,34 @@ class Pricer(object):
         self.check_property()
         self.encoded_urls['tmall'] = self.base_urls[0] + 'q=' + quote(self.good_name)
         self.encoded_urls['jd'] = self.base_urls[1]+"keyword="+self.good_name+"&enc=utf-8"
-        self.encoded_urls['suning'] = self.base_urls[2] + quote(self.good_name) + '/'
 
     def get_price(self):
+
         self.urlencoder()
-        
+
         page_tmall = IBrowser().get(self.encoded_urls['tmall'])
-        pattern_tmall = re.compile(r'id="J_ItemList.*?href="(.*?)".*?em title="(.*?)".*?_blank" title="(.*?)"', re.S)
-        result_tmall = re.findall(pattern_tmall, page_tmall)[0]
-        
+        doc_tmall = pq(page_tmall)
+        self.link['tmall'] = 'http:' + pq(doc_tmall('.productImg-wrap a')[0]).attr('href')
+        self.price['tmall'] = pq(doc_tmall('.productPrice em')[0]).attr('title')
+        self.title['tmall'] = pq(doc_tmall('.productTitle')[0]).text()
+
         page_jd = IBrowser().get(self.encoded_urls['jd'])
-        pattern_jd = re.compile(r'id="J_goodsList.*?class="p-img.*?href="(.*?)".*?data-price="(.*?)".*?</font>(.*?)</em>',re.S)
-        result_jd = re.findall(pattern_jd, page_jd)[0]
+        doc_jd = pq(page_jd)
+        self.link['jd'] = 'http:' + pq(doc_jd('.p-img a')[0]).attr('href')
+        self.price['jd'] = pq(doc_jd('.p-price i')[0]).text()
+        self.title['jd'] = pq(doc_jd('.p-name em')[0]).text()
 
 
-        page_suning = IBrowser().get(self.encoded_urls['suning'])
-        pattern_suning = re.compile(r'id="filter-results.*?href="(.*?)".*?\$</b>"(.*?)".*?a title="(.*?)"',re.S)
-        result_suning = re.findall(pattern_suning, page_suning)[0]
-
-        for i in range(0,3):
-            print 'tmall:'
-            print result_tmall[i]
-            print 'jd:'
-            print result_jd[i]
-            print 'suning:'
-            print result_suning
+    def response(self):
+        self.get_price()
+        result = {'price': self.price, 'title': self.title, 'link': self.link}
+        return result
 
 pricer = Pricer("华为p8")
-pricer.get_price()
+data = pricer.response()
+print data['price']['tmall']
+print data['price']['jd']
+print data['title']['tmall']
+print data['title']['jd']
+print data['link']['tmall']
+print data['link']['jd']
