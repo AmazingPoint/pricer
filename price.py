@@ -4,11 +4,12 @@ reload(sys)
 sys.setdefaultencoding('utf-8')
 
 import re
-
+import time
 from datetime import datetime
 from urllib import quote
 from selenium import webdriver
 from pyquery import PyQuery as pq
+from threading import Thread
 
 
 class IConsole:
@@ -78,36 +79,32 @@ class Pricer(object):
 
     def urlencoder(self):
         self.check_property()
-        self.encoded_urls['tmall'] = self.base_urls[0] + 'q=' + quote(self.good_name)
+        self.encoded_urls['tmall'] = self.base_urls[0] + 'q=' + self.good_name
         self.encoded_urls['jd'] = self.base_urls[1]+"keyword="+self.good_name+"&enc=utf-8"
 
-    def get_price(self):
-
-        self.urlencoder()
-
-        page_tmall = IBrowser().get(self.encoded_urls['tmall'])
-        doc_tmall = pq(page_tmall)
-        self.link['tmall'] = 'http:' + pq(doc_tmall('.productImg-wrap a')[0]).attr('href')
-        self.price['tmall'] = pq(doc_tmall('.productPrice em')[0]).attr('title')
-        self.title['tmall'] = pq(doc_tmall('.productTitle')[0]).text()
-
+    def jd_price(self):
         page_jd = IBrowser().get(self.encoded_urls['jd'])
         doc_jd = pq(page_jd)
         self.link['jd'] = 'http:' + pq(doc_jd('.p-img a')[0]).attr('href')
         self.price['jd'] = pq(doc_jd('.p-price i')[0]).text()
         self.title['jd'] = pq(doc_jd('.p-name em')[0]).text()
 
+    def tmall_price(self):
+        page_tmall = IBrowser().get(self.encoded_urls['tmall'])
+        doc_tmall = pq(page_tmall)
+        self.link['tmall'] = 'http:' + pq(doc_tmall('.productImg-wrap a')[0]).attr('href')
+        self.price['tmall'] = pq(doc_tmall('.productPrice em')[0]).attr('title')
+        self.title['tmall'] = pq(doc_tmall('.productTitle')[0]).text()
+
+    def price_run(self):
+        self.urlencoder()
+        tt = Thread(target=self.tmall_price, args=())
+        tj = Thread(target=self.jd_price, args=())
+        tt.start()
+        tj.start()
+        while tt.isAlive() or tj.isAlive():
+            time.sleep(0.1)
 
     def response(self):
-        self.get_price()
         result = {'price': self.price, 'title': self.title, 'link': self.link}
         return result
-
-pricer = Pricer("华为p8")
-data = pricer.response()
-print data['price']['tmall']
-print data['price']['jd']
-print data['title']['tmall']
-print data['title']['jd']
-print data['link']['tmall']
-print data['link']['jd']

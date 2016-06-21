@@ -1,0 +1,42 @@
+.forms{
+    text-align:center;
+    width:500px;
+    margin:20px auto;
+}
+
+input{
+    width:200px;
+    height:40px;
+    border:#4682b4 1px solid;
+    font-size:20px;
+    color:#666;
+    padding:2px;
+}
+
+button{
+    font-size:20px;
+    color:#fff;
+    padding:2px;
+    border:0;
+    width:80px;
+    height:44px;
+    background:#4682b4;
+}
+
+#container{
+    background:#eee;
+    width: 500px;
+    height: 250px;
+    margin:20px auto;
+}
+
+path{
+    fill:none;
+    stroke: #4682b4;
+    stroke-width: 3;
+}
+
+.domain, .tick line{
+    stroke: gray;
+    stroke-width:1;
+}
